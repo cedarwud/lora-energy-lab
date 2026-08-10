@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://leo.course.invalid/contracts/lora-energy-v1/freeze-receipt.schema.json",
+  "title": "LoRa energy policy freeze receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "scenario_id", "scenario_sha256", "scenario_anchor_sha256",
+    "lab_id", "frozen_case_id", "active_block_id", "policy_api_version",
+    "policy_sha256", "predecessor_policy_sha256", "upstream_commit",
+    "wrapper_version", "lock_sha256", "seed_role", "seed",
+    "canonicalization", "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "lora-energy-freeze-receipt-v1"},
+    "scenario_id": {"const": "ntpu-energy-decision-01"},
+    "scenario_sha256": {"$ref": "#/$defs/hash"},
+    "scenario_anchor_sha256": {"$ref": "#/$defs/hash"},
+    "lab_id": {"enum": ["A", "B", "C"]},
+    "frozen_case_id": {"enum": ["candidate", "trace-a-candidate", "revision"]},
+    "active_block_id": {"enum": ["lab-a-pace-rest", "lab-b-enter-exit-hold", "lab-c-batch-urgent"]},
+    "policy_api_version": {"const": "lora-energy-policy-v1"},
+    "policy_sha256": {"$ref": "#/$defs/hash"},
+    "predecessor_policy_sha256": {"$ref": "#/$defs/hash"},
+    "upstream_commit": {"const": "f854462cda0cd30cb56e3f0c576cb004711842f6"},
+    "wrapper_version": {"const": "lora-energy-runner-v1"},
+    "lock_sha256": {"$ref": "#/$defs/hash"},
+    "seed_role": {"type": "string", "minLength": 1, "maxLength": 64},
+    "seed": {"type": "integer", "minimum": 0, "maximum": 2147483647},
+    "canonicalization": {"const": "RFC8785"},
+    "receipt_sha256": {"$ref": "#/$defs/hash"}
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

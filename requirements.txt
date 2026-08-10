@@ -1,0 +1,3 @@
+# The coherent course adapter intentionally uses Python's standard library.
+# This file documents the runtime profile; no upstream research dependency is
+# silently installed by the bounded teaching runner.

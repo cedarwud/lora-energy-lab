@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://leo.course.invalid/contracts/lora-energy-v1/result.schema.json",
+  "title": "LoRa energy run result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "scenario_id", "scenario_sha256", "scenario_anchor_sha256",
+    "run_id", "lab_id", "case_id", "run_role", "seed", "seed_role",
+    "artifact_source", "runner_provenance", "policy", "energy_scope", "units",
+    "summary", "energy_breakdown_j", "events", "warnings", "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": {"const": "lora-energy-run-result-v1"},
+    "scenario_id": {"const": "ntpu-energy-decision-01"},
+    "scenario_sha256": {"$ref": "#/$defs/hash"},
+    "scenario_anchor_sha256": {"$ref": "#/$defs/hash"},
+    "run_id": {"$ref": "#/$defs/hash"},
+    "lab_id": {"enum": ["A", "B", "C"]},
+    "case_id": {"enum": ["baseline", "candidate", "hidden", "trace-a-baseline", "trace-a-candidate", "trace-b", "revision", "surprise"]},
+    "run_role": {"enum": ["baseline", "candidate", "revision", "withheld"]},
+    "seed": {"type": "integer", "minimum": 0, "maximum": 2147483647},
+    "seed_role": {"type": "string", "pattern": "^lab-[abc]-[a-z0-9-]+$"},
+    "artifact_source": {"enum": ["student-run", "same-scenario-fallback"]},
+    "runner_provenance": {"$ref": "#/$defs/provenance"},
+    "policy": {"$ref": "#/$defs/policy"},
+    "energy_scope": {"const": "endpoint-radio-and-processing-course-assumptions"},
+    "units": {"$ref": "#/$defs/units"},
+    "summary": {"$ref": "#/$defs/summary"},
+    "energy_breakdown_j": {"$ref": "#/$defs/energyBreakdown"},
+    "events": {"type": "array", "minItems": 1, "maxItems": 4096, "items": {"$ref": "#/$defs/event"}},
+    "warnings": {"type": "array", "maxItems": 64, "items": {"type": "string", "minLength": 1, "maxLength": 160}},
+    "claim_boundary": {"const": "SIMULATED TEACHING DATA / NOT LIVE / NOT MEASURED / NOT CANONICAL-PARITY-VERIFIED"}
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "nullableHash": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/hash"}]},
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["upstream_repository", "upstream_commit", "wrapper_version", "python_version", "lock_sha256", "engine_mode", "upstream_execution"],
+      "properties": {
+        "upstream_repository": {"const": "https://github.com/GillesC/LoRaEnergySim"},
+        "upstream_commit": {"const": "f854462cda0cd30cb56e3f0c576cb004711842f6"},
+        "wrapper_version": {"const": "lora-energy-runner-v1"},
+        "python_version": {"type": "string", "pattern": "^3\\.11\\.[0-9]+$"},
+        "lock_sha256": {"$ref": "#/$defs/hash"},
+        "engine_mode": {"const": "coherent-course-simulated-adapter"},
+        "upstream_execution": {"const": false}
+      }
+    },
+    "policy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["policy_sha256", "predecessor_policy_sha256", "freeze_receipt_sha256", "active_block_id", "policy_api_version"],
+      "properties": {
+        "policy_sha256": {"$ref": "#/$defs/hash"},
+        "predecessor_policy_sha256": {"$ref": "#/$defs/nullableHash"},
+        "freeze_receipt_sha256": {"$ref": "#/$defs/nullableHash"},
+        "active_block_id": {"enum": ["lab-a-pace-rest", "lab-b-enter-exit-hold", "lab-c-batch-urgent"]},
+        "policy_api_version": {"const": "lora-energy-policy-v1"}
+      }
+    },
+    "units": {
+      "type": "object", "additionalProperties": false,
+      "required": ["time", "power", "energy", "data", "rate", "endpoint_energy_efficiency"],
+      "properties": {
+        "time": {"const": "s"}, "power": {"const": "W"},
+        "energy": {"const": "J"}, "data": {"const": "bit"},
+        "rate": {"const": "bit/s"}, "endpoint_energy_efficiency": {"const": "bit/J"}
+      }
+    },
+    "summary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["generated_packets", "attempted_packets", "unique_delivered_packets", "delivered_bits", "collisions", "retransmissions", "expired_packets", "deadline_pass", "freshness_status", "rate_bits_per_s", "active_time_s", "wake_count", "endpoint_energy_j", "endpoint_energy_efficiency_bits_per_j", "service_pass"],
+      "properties": {
+        "generated_packets": {"type": "integer", "minimum": 0},
+        "attempted_packets": {"type": "integer", "minimum": 0},
+        "unique_delivered_packets": {"type": "integer", "minimum": 0},
+        "delivered_bits": {"type": "integer", "minimum": 0},
+        "collisions": {"type": "integer", "minimum": 0},
+        "retransmissions": {"type": "integer", "minimum": 0},
+        "expired_packets": {"type": "integer", "minimum": 0},
+        "deadline_pass": {"type": "boolean"},
+        "freshness_status": {"enum": ["fresh", "stale", "expired", "not-applicable"]},
+        "rate_bits_per_s": {"type": "number", "minimum": 0},
+        "active_time_s": {"type": "number", "minimum": 0},
+        "wake_count": {"type": "integer", "minimum": 0},
+        "endpoint_energy_j": {"type": "number", "minimum": 0},
+        "endpoint_energy_efficiency_bits_per_j": {"type": "number", "minimum": 0},
+        "service_pass": {"type": "boolean"}
+      }
+    },
+    "energyBreakdown": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sleep", "awake_idle", "wake", "process", "tx", "rx"],
+      "properties": {
+        "sleep": {"type": "number", "minimum": 0},
+        "awake_idle": {"type": "number", "minimum": 0},
+        "wake": {"type": "number", "minimum": 0},
+        "process": {"type": "number", "minimum": 0},
+        "tx": {"type": "number", "minimum": 0},
+        "rx": {"type": "number", "minimum": 0}
+      }
+    },
+    "eventBase": {
+      "type": "object",
+      "required": ["event_id", "index", "type", "start_s", "end_s", "case_id", "policy_sha256", "contact_id", "quality_band", "event_endpoint_energy_j", "cumulative_endpoint_energy_j"],
+      "properties": {
+        "event_id": {"type": "string", "pattern": "^evt-[0-9]{4}$"},
+        "index": {"type": "integer", "minimum": 0},
+        "type": {"type": "string"},
+        "start_s": {"type": "number", "minimum": 0},
+        "end_s": {"type": "number", "minimum": 0},
+        "case_id": {"type": "string", "minLength": 1, "maxLength": 64},
+        "policy_sha256": {"$ref": "#/$defs/hash"},
+        "contact_id": {"oneOf": [{"type": "null"}, {"type": "string", "maxLength": 64}]},
+        "quality_band": {"oneOf": [{"type": "null"}, {"type": "integer", "minimum": 0, "maximum": 3}]},
+        "event_endpoint_energy_j": {"type": "number", "minimum": 0},
+        "cumulative_endpoint_energy_j": {"type": "number", "minimum": 0}
+      }
+    },
+    "observation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["elapsed_s", "contact_open", "quality_band", "stable_steps", "send_mode_active", "steps_since_send", "contact_remaining_s", "queue_size", "urgent_pending", "urgent_due_in_s", "previous_action"],
+      "properties": {
+        "elapsed_s": {"type": "number", "minimum": 0},
+        "contact_open": {"type": "boolean"},
+        "quality_band": {"type": "integer", "minimum": 0, "maximum": 3},
+        "stable_steps": {"type": "integer", "minimum": 0},
+        "send_mode_active": {"type": "boolean"},
+        "steps_since_send": {"type": "integer", "minimum": 0},
+        "contact_remaining_s": {"type": "number", "minimum": 0},
+        "queue_size": {"type": "integer", "minimum": 0},
+        "urgent_pending": {"type": "boolean"},
+        "urgent_due_in_s": {"oneOf": [{"type": "null"}, {"type": "number"}]},
+        "previous_action": {"oneOf": [{"type": "null"}, {"enum": ["SLEEP", "WAIT", "SEND_ONE", "SEND_URGENT", "FLUSH_BATCH"]}]}
+      }
+    },
+    "event": {
+      "oneOf": [
+        {"allOf": [{"$ref": "#/$defs/eventBase"}, {"type": "object", "required": ["action", "observation"], "properties": {"type": {"const": "POLICY_DECISION"}, "action": {"enum": ["SLEEP", "WAIT", "SEND_ONE", "SEND_URGENT", "FLUSH_BATCH"]}, "observation": {"$ref": "#/$defs/observation"}}}], "unevaluatedProperties": false},
+        {"allOf": [{"$ref": "#/$defs/eventBase"}, {"type": "object", "required": ["from_mode", "to_mode"], "properties": {"type": {"const": "MODE_CHANGE"}, "from_mode": {"enum": ["SEND_READY", "REST"]}, "to_mode": {"enum": ["SEND_READY", "REST"]}}}], "unevaluatedProperties": false},
+        {"allOf": [{"$ref": "#/$defs/eventBase"}, {"type": "object", "required": ["state"], "properties": {"type": {"const": "STATE_INTERVAL"}, "state": {"enum": ["SLEEP", "AWAKE_IDLE", "PROCESS", "TX", "RX"]}}}], "unevaluatedProperties": false},
+        {"allOf": [{"$ref": "#/$defs/eventBase"}, {"type": "object", "required": ["outcome_code"], "properties": {"type": {"const": "WAKE"}, "outcome_code": {"enum": ["wake-complete", "wake-missed-contact"]}}}], "unevaluatedProperties": false},
+        {"allOf": [{"$ref": "#/$defs/eventBase"}, {"type": "object", "required": ["packet_ids"], "properties": {"type": {"enum": ["PACKET_GENERATED", "PACKET_COLLISION", "PACKET_DELIVERED", "PACKET_EXPIRED"]}, "packet_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}}}}], "unevaluatedProperties": false},
+        {"allOf": [{"$ref": "#/$defs/eventBase"}, {"type": "object", "required": ["packet_ids", "action"], "properties": {"type": {"const": "PACKET_ATTEMPT"}, "packet_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}}, "action": {"enum": ["SEND_ONE", "SEND_URGENT", "FLUSH_BATCH"]}}}], "unevaluatedProperties": false},
+        {"allOf": [{"$ref": "#/$defs/eventBase"}, {"type": "object", "required": ["packet_ids", "attempt_number"], "properties": {"type": {"const": "PACKET_RETRY"}, "packet_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}}, "attempt_number": {"type": "integer", "minimum": 2}}}], "unevaluatedProperties": false}
+      ]
+    }
+  }
+}

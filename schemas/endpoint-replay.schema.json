@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://leo.course.invalid/contracts/lora-energy-v1/endpoint-replay.schema.json",
+  "title": "LoRa energy endpoint replay v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version", "endpoint_replay_id", "endpoint_replay_input_id",
+    "run_id", "scenario_anchor_sha256", "scenario_sha256", "scenario_id",
+    "lab_id", "case_id", "seed", "policy", "energy_scope", "units",
+    "clock", "frames", "outcome", "artifact_source", "claim_boundary"
+  ],
+  "properties": {
+    "contract_version": {"const": "lora-energy-endpoint-replay-v1"},
+    "endpoint_replay_id": {"$ref": "#/$defs/hash"},
+    "endpoint_replay_input_id": {"$ref": "#/$defs/hash"},
+    "run_id": {"$ref": "#/$defs/hash"},
+    "scenario_anchor_sha256": {"$ref": "#/$defs/hash"},
+    "scenario_sha256": {"$ref": "#/$defs/hash"},
+    "scenario_id": {"const": "ntpu-energy-decision-01"},
+    "lab_id": {"enum": ["A", "B", "C"]},
+    "case_id": {"type": "string", "minLength": 1, "maxLength": 64},
+    "seed": {"type": "integer", "minimum": 0},
+    "policy": {"$ref": "#/$defs/policy"},
+    "energy_scope": {"const": "endpoint-radio-and-processing-course-assumptions"},
+    "units": {"$ref": "#/$defs/units"},
+    "clock": {
+      "type": "object", "additionalProperties": false,
+      "required": ["step_s", "duration_s"],
+      "properties": {
+        "step_s": {"type": "integer", "minimum": 1},
+        "duration_s": {"type": "integer", "minimum": 1}
+      }
+    },
+    "frames": {
+      "type": "array", "minItems": 1, "maxItems": 4096,
+      "items": {"$ref": "#/$defs/frame"}
+    },
+    "outcome": {"$ref": "#/$defs/outcome"},
+    "artifact_source": {"enum": ["student-run", "same-scenario-fallback"]},
+    "claim_boundary": {"const": "SIMULATED TEACHING DATA / NOT LIVE / NOT MEASURED / NOT CANONICAL-PARITY-VERIFIED"}
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "nullableHash": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/hash"}]},
+    "policy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["policy_sha256", "predecessor_policy_sha256", "freeze_receipt_sha256", "active_block_id", "policy_api_version"],
+      "properties": {
+        "policy_sha256": {"$ref": "#/$defs/hash"},
+        "predecessor_policy_sha256": {"$ref": "#/$defs/nullableHash"},
+        "freeze_receipt_sha256": {"$ref": "#/$defs/nullableHash"},
+        "active_block_id": {"enum": ["lab-a-pace-rest", "lab-b-enter-exit-hold", "lab-c-batch-urgent"]},
+        "policy_api_version": {"const": "lora-energy-policy-v1"}
+      }
+    },
+    "units": {
+      "type": "object", "additionalProperties": false,
+      "required": ["time", "energy", "data", "rate", "endpoint_energy_efficiency"],
+      "properties": {
+        "time": {"const": "s"}, "energy": {"const": "J"},
+        "data": {"const": "bit"}, "rate": {"const": "bit/s"},
+        "endpoint_energy_efficiency": {"const": "bit/J"}
+      }
+    },
+    "frame": {
+      "type": "object", "additionalProperties": false,
+      "required": ["frame_index", "elapsed_s", "contact_id", "quality_band", "queue_packet_ids", "radio_state", "action", "packet_event_ids", "cumulative_endpoint_energy_j", "service_pass"],
+      "properties": {
+        "frame_index": {"type": "integer", "minimum": 0},
+        "elapsed_s": {"type": "number", "minimum": 0},
+        "contact_id": {"oneOf": [{"type": "null"}, {"type": "string", "maxLength": 64}]},
+        "quality_band": {"oneOf": [{"type": "null"}, {"type": "integer", "minimum": 0, "maximum": 3}]},
+        "queue_packet_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "radio_state": {"enum": ["SLEEP", "WAKE", "AWAKE_IDLE", "PROCESS", "TX", "RX"]},
+        "action": {"oneOf": [{"type": "null"}, {"enum": ["SLEEP", "WAIT", "SEND_ONE", "SEND_URGENT", "FLUSH_BATCH"]}]},
+        "packet_event_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "cumulative_endpoint_energy_j": {"type": "number", "minimum": 0},
+        "service_pass": {"type": "boolean"}
+      }
+    },
+    "outcome": {
+      "type": "object", "additionalProperties": false,
+      "required": ["generated_packets", "attempted_packets", "unique_delivered_packets", "delivered_bits", "collisions", "retransmissions", "expired_packets", "deadline_pass", "freshness_status", "rate_bits_per_s", "active_time_s", "wake_count", "endpoint_energy_j", "endpoint_energy_efficiency_bits_per_j", "service_pass", "energy_breakdown_j"],
+      "properties": {
+        "generated_packets": {"type": "integer", "minimum": 0},
+        "attempted_packets": {"type": "integer", "minimum": 0},
+        "unique_delivered_packets": {"type": "integer", "minimum": 0},
+        "delivered_bits": {"type": "integer", "minimum": 0},
+        "collisions": {"type": "integer", "minimum": 0},
+        "retransmissions": {"type": "integer", "minimum": 0},
+        "expired_packets": {"type": "integer", "minimum": 0},
+        "deadline_pass": {"type": "boolean"},
+        "freshness_status": {"enum": ["fresh", "stale", "expired", "not-applicable"]},
+        "rate_bits_per_s": {"type": "number", "minimum": 0},
+        "active_time_s": {"type": "number", "minimum": 0},
+        "wake_count": {"type": "integer", "minimum": 0},
+        "endpoint_energy_j": {"type": "number", "minimum": 0},
+        "endpoint_energy_efficiency_bits_per_j": {"type": "number", "minimum": 0},
+        "service_pass": {"type": "boolean"},
+        "energy_breakdown_j": {
+          "type": "object", "additionalProperties": false,
+          "required": ["sleep", "awake_idle", "wake", "process", "tx", "rx"],
+          "properties": {
+            "sleep": {"type": "number", "minimum": 0},
+            "awake_idle": {"type": "number", "minimum": 0},
+            "wake": {"type": "number", "minimum": 0},
+            "process": {"type": "number", "minimum": 0},
+            "tx": {"type": "number", "minimum": 0},
+            "rx": {"type": "number", "minimum": 0}
+          }
+        }
+      }
+    }
+  }
+}

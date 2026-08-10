@@ -1,0 +1,460 @@
+{
+  "schema_version": "lora-energy-scenario-v1",
+  "course_id": "LORA-ENERGY-DECISION-1R",
+  "runner_contract_version": "lora-energy-leo-v1",
+  "scenario_id": "ntpu-energy-decision-01",
+  "scenario_sha256": "sha256:c157c76ed283074cdd17c1b689b83e168022abd2ca6ef8d9c337e69ab31a6593",
+  "scenario_anchor_sha256": "sha256:cfe84682a71c0c0ea09c273d4cd033c32818da63cf1695ace4363b9d789c50f9",
+  "source_mode": "bundled",
+  "target_utc": "2026-08-09T04:00:00Z",
+  "tle_source_id": "oneweb-0314-archive-2026-08-08",
+  "scenario_anchor": {
+    "course_id": "LORA-ENERGY-DECISION-1R",
+    "contract_version": "lora-fixture-first-v2",
+    "provider_kind": "fixture",
+    "provider_id": "lora-energy-fixture-provider",
+    "fixture_id": "lora-energy-decision-fixture",
+    "fixture_version": "lora-energy-decision-fixture-v2",
+    "scenario_id": "ntpu-energy-decision-01",
+    "source_mode": "bundled",
+    "tle_source_id": "oneweb-0314-archive-2026-08-08",
+    "target_utc": "2026-08-09T04:00:00Z",
+    "claim_boundary": "SIMULATED TEACHING DATA / NOT LIVE / NOT MEASURED / NOT CANONICAL-PARITY-VERIFIED",
+    "claim_levels": [
+      "SIMULATED_TEACHING_DATA",
+      "NOT_LIVE",
+      "NOT_MEASURED",
+      "NOT_CANONICAL_PARITY_VERIFIED"
+    ],
+    "units": {
+      "elapsedTime": "s",
+      "activeTime": "s",
+      "deadline": "s",
+      "freshness": "s",
+      "power": "W",
+      "consumedEnergy": "J",
+      "energyBudget": "J",
+      "rate": "bit/s",
+      "deliveredData": "bit",
+      "energyEfficiency": "bit/J",
+      "angle": "deg",
+      "distance": "km",
+      "quality": "teaching-band"
+    }
+  },
+  "runner": {
+    "upstream_repository": "https://github.com/GillesC/LoRaEnergySim",
+    "upstream_commit": "f854462cda0cd30cb56e3f0c576cb004711842f6",
+    "wrapper_version": "lora-energy-runner-v1",
+    "policy_api_version": "lora-energy-policy-v1",
+    "seed": 12001,
+    "engine_mode": "coherent-course-simulated-adapter",
+    "upstream_execution": false
+  },
+  "units": {
+    "time": "s",
+    "power": "W",
+    "energy": "J",
+    "data": "bit",
+    "rate": "bit/s"
+  },
+  "clock": {
+    "step_s": 10,
+    "duration_s": 180
+  },
+  "contact_windows": [
+    {
+      "contact_id": "contact-a",
+      "satellite_id": "ONEWEB-0314",
+      "source_id": "oneweb-0314-archive-2026-08-08",
+      "start_s": 10,
+      "end_s": 80,
+      "quality_trace_id": "ntpu-quality-course-v1",
+      "handover_target_id": "ONEWEB-0421"
+    },
+    {
+      "contact_id": "contact-b",
+      "satellite_id": "ONEWEB-0421",
+      "source_id": "oneweb-0314-archive-2026-08-08",
+      "start_s": 100,
+      "end_s": 170,
+      "quality_trace_id": "ntpu-quality-course-v1",
+      "handover_target_id": null
+    }
+  ],
+  "quality_band_trace": {
+    "trace_id": "ntpu-quality-course-v1",
+    "ordinal_labels": [
+      "closed",
+      "weak",
+      "usable",
+      "strong"
+    ],
+    "points": [
+      {
+        "elapsed_s": 0,
+        "contact_id": null,
+        "quality_band": 0
+      },
+      {
+        "elapsed_s": 10,
+        "contact_id": "contact-a",
+        "quality_band": 1
+      },
+      {
+        "elapsed_s": 20,
+        "contact_id": "contact-a",
+        "quality_band": 2
+      },
+      {
+        "elapsed_s": 30,
+        "contact_id": "contact-a",
+        "quality_band": 3
+      },
+      {
+        "elapsed_s": 40,
+        "contact_id": "contact-a",
+        "quality_band": 2
+      },
+      {
+        "elapsed_s": 50,
+        "contact_id": "contact-a",
+        "quality_band": 1
+      },
+      {
+        "elapsed_s": 60,
+        "contact_id": "contact-a",
+        "quality_band": 2
+      },
+      {
+        "elapsed_s": 70,
+        "contact_id": "contact-a",
+        "quality_band": 1
+      },
+      {
+        "elapsed_s": 80,
+        "contact_id": null,
+        "quality_band": 0
+      },
+      {
+        "elapsed_s": 90,
+        "contact_id": null,
+        "quality_band": 0
+      },
+      {
+        "elapsed_s": 100,
+        "contact_id": "contact-b",
+        "quality_band": 1
+      },
+      {
+        "elapsed_s": 110,
+        "contact_id": "contact-b",
+        "quality_band": 2
+      },
+      {
+        "elapsed_s": 120,
+        "contact_id": "contact-b",
+        "quality_band": 3
+      },
+      {
+        "elapsed_s": 130,
+        "contact_id": "contact-b",
+        "quality_band": 3
+      },
+      {
+        "elapsed_s": 140,
+        "contact_id": "contact-b",
+        "quality_band": 2
+      },
+      {
+        "elapsed_s": 150,
+        "contact_id": "contact-b",
+        "quality_band": 1
+      },
+      {
+        "elapsed_s": 160,
+        "contact_id": "contact-b",
+        "quality_band": 1
+      },
+      {
+        "elapsed_s": 170,
+        "contact_id": null,
+        "quality_band": 0
+      },
+      {
+        "elapsed_s": 180,
+        "contact_id": null,
+        "quality_band": 0
+      }
+    ]
+  },
+  "traffic_cards": [
+    {
+      "packet_id": "normal-1",
+      "class": "normal",
+      "generated_s": 0,
+      "deadline_s": 100,
+      "freshness_limit_s": 80,
+      "payload_bits": 2400,
+      "destination_id": "ntpu-gateway"
+    },
+    {
+      "packet_id": "normal-2",
+      "class": "normal",
+      "generated_s": 20,
+      "deadline_s": 130,
+      "freshness_limit_s": 80,
+      "payload_bits": 2400,
+      "destination_id": "ntpu-gateway"
+    },
+    {
+      "packet_id": "bulk-1",
+      "class": "normal",
+      "generated_s": 40,
+      "deadline_s": 170,
+      "freshness_limit_s": 120,
+      "payload_bits": 4800,
+      "destination_id": "ntpu-gateway"
+    },
+    {
+      "packet_id": "urgent-1",
+      "class": "urgent",
+      "generated_s": 70,
+      "deadline_s": 110,
+      "freshness_limit_s": 40,
+      "payload_bits": 800,
+      "destination_id": "ntpu-gateway"
+    }
+  ],
+  "endpoint_energy_profile": {
+    "scope": "endpoint-radio-and-processing-course-assumptions",
+    "sleep_power_w": 0.001,
+    "awake_idle_power_w": 0.05,
+    "process_power_w": 0.08,
+    "tx_power_w": 0.6,
+    "rx_power_w": 0.12,
+    "wake_energy_j": 0.02,
+    "wake_latency_s": 1
+  },
+  "mission_contract": {
+    "contract_id": "mission-fixed-service-boundary",
+    "evaluation_end_s": 180,
+    "required_packet_ids": [
+      "urgent-1"
+    ],
+    "minimum_unique_delivered_bits": 5600,
+    "deadline_rule": "required-packets-before-deadline",
+    "freshness_rule": "delivered-age-within-card-limit",
+    "maximum_expired_packets": 1,
+    "system_boundary_id": "endpoint-radio-and-processing-only",
+    "power_model_id": "course-endpoint-energy-v1"
+  },
+  "cases": [
+    {
+      "case_id": "baseline",
+      "lab_id": "A",
+      "run_role": "baseline",
+      "seed_role": "lab-a-primary",
+      "seed": 12001,
+      "contact_window_ids": [
+        "contact-a",
+        "contact-b"
+      ],
+      "quality_trace_id": "ntpu-quality-course-v1",
+      "traffic_card_ids": [
+        "normal-1",
+        "normal-2",
+        "bulk-1",
+        "urgent-1"
+      ],
+      "expected_predecessor_role": null,
+      "expected_freeze_role": null,
+      "withheld": false
+    },
+    {
+      "case_id": "candidate",
+      "lab_id": "A",
+      "run_role": "candidate",
+      "seed_role": "lab-a-primary",
+      "seed": 12001,
+      "contact_window_ids": [
+        "contact-a",
+        "contact-b"
+      ],
+      "quality_trace_id": "ntpu-quality-course-v1",
+      "traffic_card_ids": [
+        "normal-1",
+        "normal-2",
+        "bulk-1",
+        "urgent-1"
+      ],
+      "expected_predecessor_role": "release-default",
+      "expected_freeze_role": "lab-a-frozen",
+      "withheld": false
+    },
+    {
+      "case_id": "hidden",
+      "lab_id": "A",
+      "run_role": "withheld",
+      "seed_role": "lab-a-hidden",
+      "seed": 12011,
+      "contact_window_ids": [
+        "contact-a"
+      ],
+      "quality_trace_id": "ntpu-quality-course-v1",
+      "traffic_card_ids": [
+        "normal-1",
+        "normal-2",
+        "urgent-1"
+      ],
+      "expected_predecessor_role": "lab-a-frozen",
+      "expected_freeze_role": "lab-a-frozen",
+      "withheld": true
+    },
+    {
+      "case_id": "trace-a-baseline",
+      "lab_id": "B",
+      "run_role": "baseline",
+      "seed_role": "lab-b-trace-a",
+      "seed": 12002,
+      "contact_window_ids": [
+        "contact-a",
+        "contact-b"
+      ],
+      "quality_trace_id": "ntpu-quality-course-v1",
+      "traffic_card_ids": [
+        "normal-1",
+        "normal-2",
+        "bulk-1",
+        "urgent-1"
+      ],
+      "expected_predecessor_role": "lab-a-frozen",
+      "expected_freeze_role": null,
+      "withheld": false
+    },
+    {
+      "case_id": "trace-a-candidate",
+      "lab_id": "B",
+      "run_role": "candidate",
+      "seed_role": "lab-b-trace-a",
+      "seed": 12002,
+      "contact_window_ids": [
+        "contact-a",
+        "contact-b"
+      ],
+      "quality_trace_id": "ntpu-quality-course-v1",
+      "traffic_card_ids": [
+        "normal-1",
+        "normal-2",
+        "bulk-1",
+        "urgent-1"
+      ],
+      "expected_predecessor_role": "lab-a-frozen",
+      "expected_freeze_role": "lab-b-frozen",
+      "withheld": false
+    },
+    {
+      "case_id": "trace-b",
+      "lab_id": "B",
+      "run_role": "withheld",
+      "seed_role": "lab-b-trace-b",
+      "seed": 12012,
+      "contact_window_ids": [
+        "contact-b"
+      ],
+      "quality_trace_id": "ntpu-quality-course-v1",
+      "traffic_card_ids": [
+        "normal-2",
+        "bulk-1",
+        "urgent-1"
+      ],
+      "expected_predecessor_role": "lab-b-frozen",
+      "expected_freeze_role": "lab-b-frozen",
+      "withheld": true
+    },
+    {
+      "case_id": "baseline",
+      "lab_id": "C",
+      "run_role": "baseline",
+      "seed_role": "lab-c-primary",
+      "seed": 12003,
+      "contact_window_ids": [
+        "contact-a",
+        "contact-b"
+      ],
+      "quality_trace_id": "ntpu-quality-course-v1",
+      "traffic_card_ids": [
+        "normal-1",
+        "normal-2",
+        "bulk-1",
+        "urgent-1"
+      ],
+      "expected_predecessor_role": "lab-b-frozen",
+      "expected_freeze_role": null,
+      "withheld": false
+    },
+    {
+      "case_id": "candidate",
+      "lab_id": "C",
+      "run_role": "candidate",
+      "seed_role": "lab-c-primary",
+      "seed": 12003,
+      "contact_window_ids": [
+        "contact-a",
+        "contact-b"
+      ],
+      "quality_trace_id": "ntpu-quality-course-v1",
+      "traffic_card_ids": [
+        "normal-1",
+        "normal-2",
+        "bulk-1",
+        "urgent-1"
+      ],
+      "expected_predecessor_role": "lab-b-frozen",
+      "expected_freeze_role": null,
+      "withheld": false
+    },
+    {
+      "case_id": "revision",
+      "lab_id": "C",
+      "run_role": "revision",
+      "seed_role": "lab-c-primary",
+      "seed": 12003,
+      "contact_window_ids": [
+        "contact-a",
+        "contact-b"
+      ],
+      "quality_trace_id": "ntpu-quality-course-v1",
+      "traffic_card_ids": [
+        "normal-1",
+        "normal-2",
+        "bulk-1",
+        "urgent-1"
+      ],
+      "expected_predecessor_role": "lab-c-candidate",
+      "expected_freeze_role": "lab-c-frozen",
+      "withheld": false
+    },
+    {
+      "case_id": "surprise",
+      "lab_id": "C",
+      "run_role": "withheld",
+      "seed_role": "lab-c-surprise",
+      "seed": 12013,
+      "contact_window_ids": [
+        "contact-a"
+      ],
+      "quality_trace_id": "ntpu-quality-course-v1",
+      "traffic_card_ids": [
+        "normal-1",
+        "normal-2",
+        "bulk-1",
+        "urgent-1"
+      ],
+      "expected_predecessor_role": "lab-c-frozen",
+      "expected_freeze_role": "lab-c-frozen",
+      "withheld": true
+    }
+  ],
+  "claim_boundary": "SIMULATED TEACHING DATA / NOT LIVE / NOT MEASURED / NOT CANONICAL-PARITY-VERIFIED"
+}

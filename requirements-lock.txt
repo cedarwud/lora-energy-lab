@@ -1,0 +1,1 @@
+# lora-energy-runner-v1: standard-library-only coherent simulated adapter
