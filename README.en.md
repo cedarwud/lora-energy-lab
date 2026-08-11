@@ -558,6 +558,70 @@ claim by editing JSON by hand.
 
 ## 6. Recovery checklist
 
+### Runner recovery commands
+
+Run these commands from the extracted `lora-energy-lab/` directory. Within
+that directory, `restore` and `reset-policy` persistently replace only the
+active `student_policy.py`; none of the three commands deletes, rewrites, or
+regenerates results, replays, receipts, or checkpoints under `artifacts/`. A
+successful JSON response explicitly includes `artifacts_untouched: true`.
+
+First inspect whether the current policy is valid and which recovery checkpoints
+passed their full validation:
+
+```sh
+bash course.sh status
+```
+
+On Windows Command Prompt:
+
+```bat
+course.cmd status
+```
+
+To return to a known policy stage, use a role listed by `status`:
+
+```sh
+bash course.sh restore --checkpoint <role>
+```
+
+```bat
+course.cmd restore --checkpoint <role>
+```
+
+Available roles are:
+
+| role | purpose |
+|---|---|
+| `release-default` | Packaged baseline; the target of `reset-policy` |
+| `lab-a-frozen` | Lab A candidate freeze for hidden A and the following Lab B |
+| `lab-b-frozen` | Lab B Trace A candidate freeze for Trace B and Lab C |
+| `lab-c-candidate` | First Lab C candidate source; no freeze receipt, for recovery before revision |
+| `lab-c-frozen` | Lab C revision freeze for the surprise case |
+
+To return only to the packaged baseline, use:
+
+```sh
+bash course.sh reset-policy
+```
+
+```bat
+course.cmd reset-policy
+```
+
+`reset-policy` is equivalent to `restore --checkpoint release-default`. Use it
+when the active policy is invalid, another lab's marked block was mixed in, or
+the run should restart; it does not clear existing results or workbooks.
+
+`status` reports a missing or corrupt checkpoint/receipt, a scenario/lock/policy
+hash mismatch, or another unavailable role as `available: false` with an error;
+it does not change the active policy or any artifact. `restore` and
+`reset-policy` fail closed for an unknown or unavailable role, any hash
+mismatch, or failed post-restore policy API validation: they print `ERROR` and
+exit non-zero. If post-write validation fails, the runner attempts to atomically
+restore the exact pre-command `student_policy.py` bytes; it does not continue
+with an unvalidated policy.
+
 - Setup or verify fails: confirm that the interpreter is Python 3.11.x, then
   either repeat the manual flow in section 1 or rerun the OS-appropriate setup
   script. A successful setup already means verify succeeded. If the environment

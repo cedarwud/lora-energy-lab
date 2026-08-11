@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -eu
 
+# Recovery commands are forwarded unchanged on POSIX and Windows:
+# status, restore --checkpoint <role>, and reset-policy.
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 if [ -x "$ROOT_DIR/.venv/bin/python" ]; then
   PYTHON_BIN="$ROOT_DIR/.venv/bin/python"

@@ -530,6 +530,66 @@ scenario 與已匯入的 run/replay records 回來。證據不完整時必須保
 
 ## 6. 失敗 recovery 清單
 
+### Runner 復原命令
+
+這三個命令都要在解壓後的 `lora-energy-lab/` 目錄執行。在該目錄內，
+`restore` 與 `reset-policy` 只會持久替換目前的 `student_policy.py`；三者
+都不會刪除、重寫或重新產生 `artifacts/` 內的 result、replay、receipt 或
+checkpoint。成功輸出的 JSON 會明確包含 `artifacts_untouched: true`。
+
+先查看目前 policy 是否可載入，以及哪些 recovery checkpoint 已通過完整驗證：
+
+```sh
+bash course.sh status
+```
+
+Windows Command Prompt：
+
+```bat
+course.cmd status
+```
+
+需要回到某個已知 policy stage 時，使用 `status` 列出的 role：
+
+```sh
+bash course.sh restore --checkpoint <role>
+```
+
+```bat
+course.cmd restore --checkpoint <role>
+```
+
+可用 role 是：
+
+| role | 用途 |
+|---|---|
+| `release-default` | 封裝的 baseline；也就是 `reset-policy` 的目標 |
+| `lab-a-frozen` | Lab A candidate freeze，供 hidden A 與後續 Lab B 使用 |
+| `lab-b-frozen` | Lab B Trace A candidate freeze，供 Trace B 與 Lab C 使用 |
+| `lab-c-candidate` | Lab C 第一次 candidate source；沒有 freeze receipt，供 revision 前恢復 |
+| `lab-c-frozen` | Lab C revision freeze，供 surprise case 使用 |
+
+如需回到封裝 baseline，使用：
+
+```sh
+bash course.sh reset-policy
+```
+
+```bat
+course.cmd reset-policy
+```
+
+`reset-policy` 等同於 `restore --checkpoint release-default`。遇到目前
+policy 不合法、混入另一個 lab 的 marked block，或需要重新開始時使用；它不會
+清除既有結果或 workbook。
+
+`status` 會把缺少或損壞的 checkpoint／receipt、scenario／lock／policy hash
+不一致列為 `available: false` 與 error，並保留其他合法 role；它不會變更目前
+policy 或任何 artifact。`restore` 與 `reset-policy` 對未知或不可驗證的 role、
+hash mismatch，或 restore 後 policy API 驗證失敗，會輸出 `ERROR` 並以非零狀態
+結束。若寫入後驗證失敗，runner 會嘗試將 `student_policy.py` 原子恢復到命令前
+的 bytes；不會以未驗證的 policy 繼續執行。
+
 - setup 或 verify 失敗：確認 interpreter 是 Python 3.11.x，然後選擇重做第 1 節
   的手動流程，或重新執行對應 OS 的 setup script。Setup 成功本身就代表 verify
   已成功；環境仍不可用時，使用對應 fallback。

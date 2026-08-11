@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -13,12 +15,13 @@ PACKAGE_ROOT = Path(__file__).resolve().parent
 if str(PACKAGE_ROOT) not in sys.path:
     sys.path.insert(0, str(PACKAGE_ROOT))
 
-from lora_energy_lab.canonical_json import hash_file, load_file, write_file
+from lora_energy_lab.canonical_json import CanonicalJSONError, hash_bytes, hash_file, load_file, write_file
 from lora_energy_lab.contracts import (
     BLOCK_IDS,
     CLAIM_BOUNDARY,
     ContractError,
     ENGINE_MODE,
+    POLICY_API_VERSION,
     SCENARIO_ID,
     WRAPPER_VERSION,
     case_for,
@@ -42,6 +45,7 @@ from lora_energy_lab.result_writer import (
     make_freeze_receipt,
     read_policy_checkpoint,
     read_receipt,
+    receipt_path,
     write_candidate_checkpoint,
     write_freeze,
     write_result,
@@ -59,6 +63,328 @@ def _lock_sha256() -> str:
 
 def _scenario() -> dict[str, Any]:
     return load_scenario(PACKAGE_ROOT / "scenarios" / f"{SCENARIO_ID}.json")
+
+
+# Recovery targets are deliberately a closed set. A command can return to a
+# known policy stage, but cannot copy an arbitrary path into the active policy
+# file.
+RECOVERY_CHECKPOINT_ROLES = (
+    "release-default",
+    "lab-a-frozen",
+    "lab-b-frozen",
+    "lab-c-candidate",
+    "lab-c-frozen",
+)
+_FROZEN_ROLE_EXPECTATIONS = {
+    "lab-a-frozen": ("A", "candidate", BLOCK_IDS["A"]),
+    "lab-b-frozen": ("B", "trace-a-candidate", BLOCK_IDS["B"]),
+    "lab-c-frozen": ("C", "revision", BLOCK_IDS["C"]),
+}
+
+
+def _validated_policy_surface_at_path(path: Path):
+    """Load one policy through every active-block entry point."""
+    surface = None
+    for block in BLOCK_IDS.values():
+        loaded, _function = load_policy(path, block)
+        if surface is None:
+            surface = loaded
+        elif loaded.policy_sha256 != surface.policy_sha256:
+            raise PolicyError("policy API returned inconsistent source hashes")
+    if surface is None:  # pragma: no cover - BLOCK_IDS is a fixed contract
+        raise PolicyError("policy API has no editable blocks")
+    return surface
+
+
+def _policy_api_validation(path: Path):
+    """Validate the active policy path after an atomic replacement."""
+    return _validated_policy_surface_at_path(path)
+
+
+def _policy_source_api_validation(source: bytes, label: str):
+    """Validate checkpoint bytes completely before replacing the active policy."""
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix="lora-energy-policy-validation-", suffix=".py"
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(source)
+        try:
+            return _validated_policy_surface_at_path(temporary)
+        except PolicyError as exc:
+            raise PolicyError(f"{label} failed policy API validation: {exc}") from exc
+    finally:
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+def _receipt_archive(package_root: Path, receipt: dict[str, Any]) -> None:
+    """Require the content-addressed receipt copy to match its checkpoint."""
+    archived_path = receipt_path(package_root, receipt["receipt_sha256"])
+    try:
+        archived = load_file(archived_path)
+    except OSError as exc:
+        raise FileNotFoundError(
+            f"missing content-addressed receipt for {archived_path.name}"
+        ) from exc
+    if not isinstance(archived, dict):
+        raise PolicyError("content-addressed freeze receipt is not an object")
+    if archived != receipt:
+        raise PolicyError("freeze receipt checkpoint differs from its content-addressed receipt")
+    validate_freeze_receipt(archived)
+
+
+def _validated_recovery_checkpoint(role: str) -> dict[str, Any]:
+    """Return a validated recovery source without changing student_policy.py."""
+    if role not in RECOVERY_CHECKPOINT_ROLES:
+        raise PolicyError(
+            f"unknown recovery checkpoint {role!r}; choose one of {', '.join(RECOVERY_CHECKPOINT_ROLES)}"
+        )
+
+    if role == "release-default":
+        path = baseline_policy_path(PACKAGE_ROOT)
+        try:
+            source = path.read_bytes()
+        except OSError as exc:
+            raise FileNotFoundError("missing packaged student_policy.baseline.py") from exc
+        surface = _policy_source_api_validation(source, path.name)
+        if surface.policy_sha256 != BASELINE_POLICY_SHA256:
+            raise PolicyError("packaged student_policy.baseline.py has been modified")
+        return {
+            "role": role,
+            "kind": "packaged-baseline",
+            "source": source,
+            "surface": surface,
+            "receipt": None,
+        }
+
+    if role == "lab-c-candidate":
+        path = checkpoint_policy_path(PACKAGE_ROOT, role)
+        try:
+            source = path.read_bytes()
+        except OSError as exc:
+            raise FileNotFoundError(f"missing {role} policy checkpoint") from exc
+        surface = _policy_source_api_validation(source, path.name)
+        predecessor = _validated_recovery_checkpoint("lab-b-frozen")
+        compare_outside(surface, predecessor["surface"], BLOCK_IDS["C"])
+        if surface.policy_sha256 == predecessor["surface"].policy_sha256:
+            raise PolicyError("lab-c-candidate must differ from lab-b-frozen in the marked Lab C block")
+        return {
+            "role": role,
+            "kind": "candidate-policy-checkpoint",
+            "source": source,
+            "surface": surface,
+            "receipt": None,
+        }
+
+    expected = _FROZEN_ROLE_EXPECTATIONS[role]
+    try:
+        receipt = read_receipt(PACKAGE_ROOT, role)
+    except FileNotFoundError:
+        raise
+    except (CanonicalJSONError, ResultError, OSError, TypeError, KeyError) as exc:
+        raise PolicyError(f"invalid {role} freeze receipt: {exc}") from exc
+    scenario = _scenario()
+    if receipt["scenario_sha256"] != scenario["scenario_sha256"]:
+        raise PolicyError(f"{role} receipt scenario hash does not match the packaged scenario")
+    if receipt["scenario_anchor_sha256"] != scenario["scenario_anchor_sha256"]:
+        raise PolicyError(f"{role} receipt anchor hash does not match the packaged scenario")
+    if receipt["lock_sha256"] != _lock_sha256():
+        raise PolicyError(f"{role} receipt lock hash does not match requirements-lock.txt")
+    if (receipt["lab_id"], receipt["frozen_case_id"], receipt["active_block_id"]) != expected:
+        raise PolicyError(f"{role} receipt role metadata does not match its checkpoint role")
+    _receipt_archive(PACKAGE_ROOT, receipt)
+
+    policy_path_for_role = checkpoint_policy_path(PACKAGE_ROOT, role)
+    try:
+        source = policy_path_for_role.read_bytes()
+    except OSError as exc:
+        raise FileNotFoundError(f"missing {role} policy checkpoint") from exc
+    surface = _policy_source_api_validation(source, policy_path_for_role.name)
+    if surface.policy_sha256 != receipt["policy_sha256"]:
+        raise PolicyError(f"{role} policy checkpoint hash does not match its freeze receipt")
+    return {
+        "role": role,
+        "kind": "freeze-checkpoint",
+        "source": source,
+        "surface": surface,
+        "receipt": receipt,
+    }
+
+
+def _fsync_directory(directory: Path) -> None:
+    """Best-effort directory sync for POSIX; harmless on unsupported filesystems."""
+    flags = getattr(os, "O_DIRECTORY", 0)
+    try:
+        descriptor = os.open(str(directory), os.O_RDONLY | flags)
+    except OSError:
+        return
+    try:
+        os.fsync(descriptor)
+    except OSError:
+        pass
+    finally:
+        os.close(descriptor)
+
+
+def _atomic_write_bytes(path: Path, source: bytes) -> None:
+    """Write bytes through a same-directory temporary file and atomic replace."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=str(path.parent)
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(source)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+        _fsync_directory(path.parent)
+    except Exception:
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
+
+
+def restore_policy(checkpoint: str) -> dict[str, Any]:
+    """Restore a validated checkpoint and leave all result evidence untouched."""
+    selected = _validated_recovery_checkpoint(checkpoint)
+    target = policy_path(PACKAGE_ROOT)
+    try:
+        previous = target.read_bytes()
+    except FileNotFoundError:
+        previous = None
+    except OSError as exc:
+        raise PolicyError(f"cannot read current student_policy.py: {exc}") from exc
+
+    _atomic_write_bytes(target, selected["source"])
+    try:
+        restored = _policy_api_validation(target)
+        if restored.policy_sha256 != selected["surface"].policy_sha256:
+            raise PolicyError("restored policy hash changed during policy API validation")
+    except Exception as exc:
+        try:
+            if previous is None:
+                target.unlink(missing_ok=True)
+            else:
+                _atomic_write_bytes(target, previous)
+        except Exception as rollback_exc:
+            raise PolicyError(f"restored policy failed validation and rollback failed: {rollback_exc}") from exc
+        if isinstance(exc, PolicyError):
+            raise
+        raise PolicyError(f"restored policy failed validation: {exc}") from exc
+
+    receipt = selected["receipt"]
+    result = {
+        "status": "OK",
+        "command": "restore",
+        "checkpoint": checkpoint,
+        "checkpoint_kind": selected["kind"],
+        "policy_sha256": restored.policy_sha256,
+        "policy_path": str(target.relative_to(PACKAGE_ROOT)),
+        "receipt_sha256": receipt["receipt_sha256"] if receipt else None,
+        "artifacts_untouched": True,
+    }
+    print(json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
+    return result
+
+
+def _current_policy_status() -> dict[str, Any]:
+    target = policy_path(PACKAGE_ROOT)
+    try:
+        source = target.read_bytes()
+    except OSError as exc:
+        return {"sha256": None, "valid": False, "error": f"{type(exc).__name__}: {exc}"}
+    digest = hash_bytes(source)
+    try:
+        surface = _policy_api_validation(target)
+    except Exception as exc:
+        return {
+            "sha256": digest,
+            "valid": False,
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+    return {"sha256": surface.policy_sha256, "valid": True, "error": None}
+
+
+def _checkpoint_status(role: str) -> dict[str, Any]:
+    try:
+        selected = _validated_recovery_checkpoint(role)
+    except Exception as exc:
+        return {
+            "role": role,
+            "available": False,
+            "kind": "packaged-baseline" if role == "release-default" else (
+                "candidate-policy-checkpoint" if role == "lab-c-candidate" else "freeze-checkpoint"
+            ),
+            "policy_sha256": None,
+            "receipt_sha256": None,
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+    receipt = selected["receipt"]
+    return {
+        "role": role,
+        "available": True,
+        "kind": selected["kind"],
+        "policy_sha256": selected["surface"].policy_sha256,
+        "receipt_sha256": receipt["receipt_sha256"] if receipt else None,
+        "error": None,
+    }
+
+
+def recovery_status() -> int:
+    """Print a stable JSON recovery inventory for support and tooling."""
+    current = _current_policy_status()
+    checkpoints = [_checkpoint_status(role) for role in RECOVERY_CHECKPOINT_ROLES]
+    available_roles = [entry["role"] for entry in checkpoints if entry["available"]]
+    next_recovery_commands = [
+        f"bash course.sh restore --checkpoint {role}" for role in available_roles
+    ] + [
+        f"course.cmd restore --checkpoint {role}" for role in available_roles
+    ]
+    if current["valid"]:
+        next_recovery_commands.insert(0, "bash course.sh status")
+        next_recovery_commands.insert(1, "course.cmd status")
+    else:
+        for command in (
+            "bash course.sh restore --checkpoint release-default",
+            "course.cmd restore --checkpoint release-default",
+        ):
+            if command in next_recovery_commands:
+                next_recovery_commands.remove(command)
+        if "release-default" in available_roles:
+            next_recovery_commands[0:0] = [
+                "bash course.sh restore --checkpoint release-default",
+                "course.cmd restore --checkpoint release-default",
+            ]
+    output = {
+        "status": "OK",
+        "command": "status",
+        "policy_api_version": POLICY_API_VERSION,
+        "current_policy_sha256": current["sha256"],
+        "current_policy_valid": current["valid"],
+        "current_policy_error": current["error"],
+        "available_checkpoint_roles": available_roles,
+        "available_checkpoints": checkpoints,
+        "next_recovery_suggestions": next_recovery_commands,
+        "next_recovery_actions": [
+            {
+                "checkpoint": role,
+                "posix": f"bash course.sh restore --checkpoint {role}",
+                "windows": f"course.cmd restore --checkpoint {role}",
+            }
+            for role in available_roles
+        ],
+        "artifacts_untouched": True,
+    }
+    print(json.dumps(output, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
+    return 0
 
 
 def _surface_from_checkpoint(role: str):
@@ -102,7 +428,7 @@ def verify_setup() -> int:
         "scenario_sha256": scenario["scenario_sha256"],
         "scenario_anchor_sha256": scenario["scenario_anchor_sha256"],
         "policy_sha256": current.policy_sha256,
-        "policy_api_version": "lora-energy-policy-v1",
+        "policy_api_version": POLICY_API_VERSION,
         "lock_sha256": lock_sha,
         "python_version": _python_version(),
         "engine_mode": ENGINE_MODE,
@@ -347,6 +673,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="run_lab.py")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("verify")
+    subparsers.add_parser("status")
+    restore_parser = subparsers.add_parser("restore")
+    restore_parser.add_argument("--checkpoint", required=True)
+    subparsers.add_parser("reset-policy")
     run_parser = subparsers.add_parser("run")
     run_parser.add_argument("--lab", choices=("A", "B", "C"), required=True)
     run_parser.add_argument("--case", required=True)
@@ -360,11 +690,19 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "verify":
             return verify_setup()
+        if args.command == "status":
+            return recovery_status()
+        if args.command == "restore":
+            restore_policy(args.checkpoint)
+            return 0
+        if args.command == "reset-policy":
+            restore_policy("release-default")
+            return 0
         if args.command == "_make-fallbacks":
             return generate_fallback_artifacts()
         run_case(args.lab, args.case, args.freeze)
         return 0
-    except (ContractError, PolicyError, SimulationError, ResultError, FileNotFoundError, OSError) as exc:
+    except (CanonicalJSONError, ContractError, PolicyError, SimulationError, ResultError, FileNotFoundError, OSError) as exc:
         print(f"ERROR {type(exc).__name__}: {exc}", file=sys.stderr)
         return 2
 
